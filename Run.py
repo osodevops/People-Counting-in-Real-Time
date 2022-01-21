@@ -9,7 +9,8 @@ import numpy as np
 import argparse, imutils
 import time, dlib, cv2, datetime
 from itertools import zip_longest
-
+import json
+import requests
 t0 = time.time()
 
 def run():
@@ -75,7 +76,7 @@ def run():
 	x = []
 	empty=[]
 	empty1=[]
-
+	lastTotal=0
 	# start the frames per second throughput estimator
 	fps = FPS().start()
 
@@ -245,11 +246,22 @@ def run():
 								print("[INFO] Alert sent")
 
 						to.counted = True
-						
+
 					x = []
 					# compute the sum of total people inside
 					x.append(len(empty1)-len(empty))
-					#print("Total people inside:", x)
+					obj = {
+						"location": "Jan Home",
+						"total_people_inside": x[0],
+						"when": str(datetime.datetime.now())
+					}
+					if lastTotal < x[0]:
+						print(json.dumps(obj))
+						# requests.post('http://localhost:3002/', data=json.dumps(obj),
+						# 					headers={"Content-Type": "application/json"})
+						# TODO push to kafka
+					lastTotal = x[0]
+					# print("Total people inside:", x)
 
 
 			# store the trackable object in our dictionary
@@ -272,7 +284,7 @@ def run():
 		info2 = [
 		("Total people inside", x),
 		]
-
+		# print(json.dumps(info))
                 # Display the output
 		for (i, (k, v)) in enumerate(info):
 			text = "{}: {}".format(k, v)
@@ -292,7 +304,7 @@ def run():
 				wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
 				wr.writerow(("End Time", "In", "Out", "Total Inside"))
 				wr.writerows(export_data)
-				
+
 		# check to see if we should write the frame to disk
 		if writer is not None:
 			writer.write(frame)
@@ -330,7 +342,7 @@ def run():
 	# # otherwise, release the video file pointer
 	# else:
 	# 	vs.release()
-	
+
 	# issue 15
 	if config.Thread:
 		vs.release()
